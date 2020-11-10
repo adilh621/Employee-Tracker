@@ -1,5 +1,6 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
+const employee = require('./employee.js')
 
 // create the connection information for the sql database
 var connection = mysql.createConnection({
@@ -43,9 +44,8 @@ function start() {
 
       })
       .then(function(answer) {
-
-
         switch(answer.choice){
+
           case "View All Employees?":
             employeeList();
           break;
@@ -75,14 +75,11 @@ function start() {
  
       });
   }
-
-  // View All Employee function
-
   function employeeList(){
     connection.query("SELECT employee.first_name, employee.last_name, role.title AS Title FROM employee JOIN role ON employee.role_id = role.id;", 
     function(err, res) {
-    if (err) throw err
-    console.table(res)
-    start()
+      if (err) throw err
+      console.table(res)
+      start()
     })
   }
