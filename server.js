@@ -1,7 +1,5 @@
 var mysql = require("mysql");
 var inquirer = require("inquirer");
-
-
 // create the connection information for the sql database
 var connection = mysql.createConnection({
   host: "localhost",
@@ -78,7 +76,7 @@ function start() {
 
   // View All employees
   function employeeList(){
-    connection.query("SELECT employee.first_name, employee.last_name, role.title AS Title FROM employee JOIN role ON employee.role_id = role.id;", 
+    connection.query("SELECT employee.first_name, employee.last_name, role.title, role.salary, department.name, CONCAT(e.first_name, ' ' ,e.last_name) AS Manager FROM employee INNER JOIN role on role.id = employee.role_id INNER JOIN department on department.id = role.department_id left join employee e on employee.manager_id = e.id;", 
     function(err, res) {
       if (err) throw err
       console.table(res)
@@ -158,8 +156,8 @@ function addEmployee() {
       var managerId = selectManager().indexOf(val.choice) + 1
       connection.query("INSERT INTO employee SET ?", 
       {
-          first_name: val.firstName,
-          last_name: val.lastName,
+          first_name: JSON.stringify(val.firstname),
+          last_name: JSON.stringify(val.lastname),
           manager_id: managerId,
           role_id: roleId
           
@@ -173,49 +171,31 @@ function addEmployee() {
 }
   // Update Employee 
   function updateEmployee() {
-    connection.query("SELECT employee.last_name, role.title FROM employee JOIN role ON employee.role_id = role.id;", function(err, res) {
-    // console.log(res)
-     if (err) throw err
-     console.log(res)
-    inquirer.prompt([
-          {
-            name: "lastName",
-            type: "rawlist",
-            choices: function() {
-              var lastName = [];
-              for (var i = 0; i < res.length; i++) {
-                lastName.push(res[i].last_name);
-              }
-              return lastName;
-            },
-            message: "What is the Employee's last name? ",
-          },
-          {
-            name: "role",
-            type: "rawlist",
-            message: "What is the Employees new title? ",
-            choices: selectRole()
-          },
-      ]).then(function(val) {
-        var roleId = selectRole().indexOf(val.role) + 1
-        connection.query("UPDATE employee SET WHERE ?", 
+    inquirer
+      .prompt([
         {
-          last_name: val.lastName
-           
-        }, 
-        {
-          role_id: roleId
-           
-        }, 
-        function(err){
-            if (err) throw err
-            console.table(val)
-            start()
-        })
+          type: "input",
+          message: "Which employee would you like to update?",
+          name: "eeUpdate"
+        },
   
-    });
-  });
-
+        {
+          type: "input",
+          message: "What do you want to update to?",
+          name: "updateRole"
+        }
+      ])
+      .then(function(answer) {
+        // let query = `INSERT INTO department (name) VALUES ("${answer.deptName}")`
+        //let query = `'UPDATE employee SET role_id=${answer.updateRole} WHERE first_name= ${answer.eeUpdate}`;
+        //console.log(query);
+  
+        connection.query('UPDATE employee SET role_id=? WHERE first_name= ?',[answer.updateRole, answer.eeUpdate],function(err, res) {
+          if (err) throw err;
+          console.table(res);
+          start();
+        });
+      });
   }
 // Add Employee Role
 function addRole() { 
@@ -259,7 +239,7 @@ function addDepartment() {
           message: "What Department would you like to add?"
         }
     ]).then(function(res) {
-        var query = connection.query(
+        connection.query(
             "INSERT INTO department SET ? ",
             {
               name: res.name
